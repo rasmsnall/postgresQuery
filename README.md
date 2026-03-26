@@ -107,7 +107,7 @@ cargo run
 
 This project is distributed under the MIT License.
 
-##Remarks
+## Remarks
 
-## The project combines systems programming in Rust with modern GUI development to provide a self-contained PostgreSQL client. Its modular structure supports extensibility while maintaining separation of concerns across database interaction, UI rendering, and local persistence.
+The project combines systems programming in Rust with modern GUI development to provide a self-contained PostgreSQL client. Its modular structure supports extensibility while maintaining separation of concerns across database interaction, UI rendering, and local persistence.
 
