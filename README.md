@@ -24,19 +24,19 @@ It integrates database connectivity, query editing, history tracking, and result
 
 ## Architecture
 
-`
+
 The application is organized into modular components, each responsible for a specific aspect of functionality:
 src/
-├── main.rs # Application entry point and window configuration
-├── app.rs # Core application state, update logic, and UI rendering
-├── db.rs # PostgreSQL connection handling and query execution
-├── schema.rs # Schema fetching and caching
-├── history.rs # Query history persistence (SQLite via rusqlite)
-├── profiles.rs # Connection profile management and credential storage
-├── recent.rs # Recently used connections
-├── snippets.rs # SQL snippet storage and retrieval
-├── highlighter.rs # SQL syntax highlighting
-└── utils.rs # Utility functions`
+├── main.rs         # Application entry point and window configuration
+├── app.rs          # Core application state, update logic, and UI rendering
+├── db.rs           # PostgreSQL connection handling and query execution
+├── schema.rs       # Schema fetching and caching
+├── history.rs      # Query history persistence (SQLite via rusqlite)
+├── profiles.rs     # Connection profile management and credential storage
+├── recent.rs       # Recently used connections
+├── snippets.rs     # SQL snippet storage and retrieval
+├── highlighter.rs  # SQL syntax highlighting
+└── utils.rs        # Utility functions
 
 ---
 
