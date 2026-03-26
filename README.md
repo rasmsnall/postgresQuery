@@ -69,3 +69,40 @@ cd postgresQuery
 cargo build --release
 cargo run
 ```
+
+## Usage
+1. Launch the application
+2. Create or select a connection profile
+3. Enter SQL queries in the editor
+4. Execute queries and view results
+5. Save frequently used queries as snippets
+6. Review previous queries via the history panel
+
+## Data Storage
+- Query history is stored locally using SQLite (query_history.db)
+- Connection profiles are persisted and may use system keyring services for secure password storage
+- Schema information may be cached to improve performance
+
+## Security Considerations
+*Credentials are handled using the system keyring when available
+*Sensitive data structures utilize memory-zeroing techniques where applicable
+*TLS is supported for secure database connections
+
+## Performance Notes
+- Queries exceeding a predefined threshold (e.g., 1000 ms) are flagged as slow
+- Schema caching reduces repeated metadata queries
+- Asynchronous execution ensures responsive UI behavior
+- Contributing
+- Fork the repository
+- Create a feature branch
+- Commit your changes
+- Submit a pull request
+
+## License
+
+This project is distributed under the MIT License.
+
+##Remarks
+
+## The project combines systems programming in Rust with modern GUI development to provide a self-contained PostgreSQL client. Its modular structure supports extensibility while maintaining separation of concerns across database interaction, UI rendering, and local persistence.
+
