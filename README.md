@@ -97,12 +97,15 @@ cargo run
 - Queries exceeding a predefined threshold (e.g., 1000 ms) are flagged as slow
 - Schema caching reduces repeated metadata queries
 - Asynchronous execution ensures responsive UI behavior
-- Contributing
-- Fork the repository
-- Create a feature branch
-- Commit your changes
-- Submit a pull request
 
+## Contributing
+```
+-> Fork the repository
+-> Create a feature branch
+-> Commit your changes
+-> Submit a pull request
+
+```
 ## License
 
 This project is licensed under the MIT License.
