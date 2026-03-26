@@ -25,7 +25,11 @@ It integrates database connectivity, query editing, history tracking, and result
 ## Architecture
 
 
+## Architecture
+
 The application is organized into modular components, each responsible for a specific aspect of functionality:
+
+```text
 src/
 ├── main.rs         # Application entry point and window configuration
 ├── app.rs          # Core application state, update logic, and UI rendering
@@ -37,7 +41,7 @@ src/
 ├── snippets.rs     # SQL snippet storage and retrieval
 ├── highlighter.rs  # SQL syntax highlighting
 └── utils.rs        # Utility functions
-
+```
 ---
 
 ## Dependencies
