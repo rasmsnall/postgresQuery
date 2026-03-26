@@ -24,6 +24,7 @@ It integrates database connectivity, query editing, history tracking, and result
 
 ## Architecture
 
+```bash
 The application is organized into modular components, each responsible for a specific aspect of functionality:
 src/
 ├── main.rs # Application entry point and window configuration
@@ -36,7 +37,7 @@ src/
 ├── snippets.rs # SQL snippet storage and retrieval
 ├── highlighter.rs # SQL syntax highlighting
 └── utils.rs # Utility functions
-
+```
 ---
 
 ## Dependencies
