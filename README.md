@@ -84,9 +84,9 @@ cargo run
 - Schema information may be cached to improve performance
 
 ## Security Considerations
-*Credentials are handled using the system keyring when available
-*Sensitive data structures utilize memory-zeroing techniques where applicable
-*TLS is supported for secure database connections
+- Credentials are handled using the system keyring when available
+- Sensitive data structures utilize memory-zeroing techniques where applicable
+- TLS is supported for secure database connections
 
 ## Performance Notes
 - Queries exceeding a predefined threshold (e.g., 1000 ms) are flagged as slow
