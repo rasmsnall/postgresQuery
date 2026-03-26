@@ -99,12 +99,12 @@ cargo run
 - Asynchronous execution ensures responsive UI behavior
 
 ## Contributing
+
 ```
 -> Fork the repository
 -> Create a feature branch
 -> Commit your changes
 -> Submit a pull request
-
 ```
 ## License
 
