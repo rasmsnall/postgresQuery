@@ -1,122 +1,71 @@
-# postgresQuery
+# PostgreSQL Query Launcher
 
 ## Overview
 
-`postgresQuery` is a lightweight utility for constructing and executing PostgreSQL queries in a structured and safe manner. The project aims to improve code readability and maintainability while preserving the flexibility of raw SQL.
+PostgreSQL Query Launcher is a desktop application written in Rust that provides a graphical interface for interacting with PostgreSQL databases. The application is designed to streamline query execution, connection management, and query organization within a single environment.
 
-The library emphasizes parameterized query construction to reduce the risk of SQL injection and to align with best practices in database interaction.
+It integrates database connectivity, query editing, history tracking, and result handling into a cohesive user interface built using the `iced` GUI framework.
 
 ---
 
 ## Features
 
-- Structured query construction using template literals  
-- Automatic parameterization of query inputs  
-- Minimal abstraction over raw SQL  
-- Lightweight design with minimal dependencies  
-- Compatibility with standard PostgreSQL clients  
+- Graphical user interface for executing PostgreSQL queries  
+- Persistent connection profiles with secure credential storage  
+- Query history tracking using a local SQLite database  
+- SQL syntax highlighting within the editor  
+- Schema inspection and caching  
+- Snippet management for reusable SQL fragments  
+- Export functionality for query results (e.g., spreadsheet formats)  
+- Query formatting support  
+- Detection of slow queries based on execution time thresholds  
+
+---
+
+## Architecture
+
+The application is organized into modular components, each responsible for a specific aspect of functionality:
+src/
+├── main.rs # Application entry point and window configuration
+├── app.rs # Core application state, update logic, and UI rendering
+├── db.rs # PostgreSQL connection handling and query execution
+├── schema.rs # Schema fetching and caching
+├── history.rs # Query history persistence (SQLite via rusqlite)
+├── profiles.rs # Connection profile management and credential storage
+├── recent.rs # Recently used connections
+├── snippets.rs # SQL snippet storage and retrieval
+├── highlighter.rs # SQL syntax highlighting
+└── utils.rs # Utility functions
+
+---
+
+## Dependencies
+
+Key dependencies include:
+
+- `iced` for the graphical user interface  
+- `tokio` and `tokio-postgres` for asynchronous database communication  
+- `rusqlite` for local persistence of query history  
+- `native-tls` and `postgres-native-tls` for secure connections  
+- `serde` and `serde_json` for serialization  
+- `rust_xlsxwriter` for exporting query results  
+- `sqlformat` for SQL formatting  
+- `keyring` for secure password storage  
 
 ---
 
 ## Installation
 
-Clone the repository:
+### Prerequisites
+
+- Rust (edition 2021 or later)  
+- Cargo (Rust package manager)  
+
+### Build
 
 ```bash
 git clone https://github.com/rasmsnall/postgresQuery.git
 cd postgresQuery
+cargo build --release
+cargo run
 ```
-
-Alternatively, integrate the source directly into your project depending on your build system and requirements.
-
----
-
-## Usage
-
-### Basic Query
-
-```javascript
-const query = postgresQuery`
-  SELECT * FROM users
-  WHERE id = ${userId}
-`
-```
-
-### Insert Example
-
-```javascript
-const query = postgresQuery`
-  INSERT INTO users (name, email)
-  VALUES (${name}, ${email})
-`
-```
-
-### Update Example
-
-```javascript
-const query = postgresQuery`
-  UPDATE users
-  SET name = ${name}
-  WHERE id = ${id}
-`
-```
-
-### Execution
-
-```javascript
-const result = await db.query(query)
-```
-
----
-
-## Parameterization
-
-The library transforms template literal interpolations into parameterized queries. Instead of embedding values directly into SQL strings, placeholders are generated and values are passed separately to the database driver.
-
-This approach improves security by mitigating SQL injection risks and ensures consistent query behavior.
-
----
-
-## Project Structure
-
-```
-postgresQuery/
-├── src/
-│   └── index.js
-├── tests/
-├── package.json
-└── README.md
-```
-
----
-
-## Testing
-
-Run the test suite using:
-
-```bash
-npm test
-```
-
----
-
-## Contributing
-
-Contributions are accepted through standard Git workflows:
-
-1. Fork the repository  
-2. Create a new branch for your changes  
-3. Commit your modifications  
-4. Submit a pull request for review  
-
----
-
-## License
-
-This project is distributed under the MIT License.
-
----
-
-## Notes
-
-The design of `postgresQuery` is informed by established practices in PostgreSQL client libraries, particularly the use of parameterized queries and template-based query construction.
