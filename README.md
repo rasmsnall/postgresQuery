@@ -24,9 +24,6 @@ It integrates database connectivity, query editing, history tracking, and result
 
 ## Architecture
 
-
-## Architecture
-
 The application is organized into modular components, each responsible for a specific aspect of functionality:
 
 ```text
@@ -71,7 +68,11 @@ Key dependencies include:
 ```bash
 git clone https://github.com/rasmsnall/postgresQuery.git
 cd postgresQuery
+```
+```bash
 cargo build --release
+```
+```bash
 cargo run
 ```
 
