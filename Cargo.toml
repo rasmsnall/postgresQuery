@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 iced = { version = "0.13", features = ["tokio", "advanced"] }
-tokio-postgres     = "0.7"
+tokio-postgres     = { version = "0.7", features = ["with-serde_json-1"] }
 tokio              = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
 postgres-native-tls = "0.5"
 native-tls          = "0.2"

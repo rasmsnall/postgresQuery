@@ -6,11 +6,11 @@ const MAX_HISTORY_ROWS: i64 = 10_000;
 #[derive(Debug, Clone)]
 pub struct HistoryEntry {
     #[allow(dead_code)]
-    pub id:        i64,
+    pub id: i64,
     pub timestamp: DateTime<Local>,
-    pub query:     String,
+    pub query: String,
     pub row_count: Option<usize>,
-    pub error:     Option<String>,
+    pub error: Option<String>,
 }
 
 pub struct HistoryStore {
@@ -104,11 +104,11 @@ impl HistoryStore {
                 .map(|dt| dt.with_timezone(&Local))
                 .unwrap_or_else(|_| Local::now());
             Ok(HistoryEntry {
-                id:        row.get(0)?,
+                id: row.get(0)?,
                 timestamp,
-                query:     row.get(2)?,
+                query: row.get(2)?,
                 row_count: row.get::<_, Option<i64>>(3)?.map(|n| n as usize),
-                error:     row.get(4)?,
+                error: row.get(4)?,
             })
         };
 
@@ -116,8 +116,7 @@ impl HistoryStore {
             stmt.query_map(params![f, t], map_row)?
                 .collect::<Result<Vec<_>>>()?
         } else {
-            stmt.query_map([], map_row)?
-                .collect::<Result<Vec<_>>>()?
+            stmt.query_map([], map_row)?.collect::<Result<Vec<_>>>()?
         };
 
         Ok(rows)
