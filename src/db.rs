@@ -277,6 +277,74 @@ pub fn fetch_schema_sync(handle: &PgHandle) -> Result<Vec<SchemaTable>, String> 
 }
 
 // ---------------------------------------------------------------------------
+// Query plan (flamegraph data)
+// ---------------------------------------------------------------------------
+#[derive(Debug, Clone)]
+pub struct PlanNode {
+    pub node_type:      String,
+    pub relation:       Option<String>,
+    pub actual_total_ms: f64,  // loops-adjusted total time (ms)
+    pub actual_rows:    i64,
+    #[allow(dead_code)]
+    pub loops:          i64,
+    pub depth:          usize,
+    pub exclusive_ms:   f64,   // time not attributed to children
+}
+
+pub fn explain_plan_sync(handle: &PgHandle, sql: &str) -> Result<Vec<PlanNode>, String> {
+    let explain_sql = format!("EXPLAIN (ANALYZE, FORMAT JSON) {sql}");
+    handle.rt.block_on(async {
+        let client = &handle.client;
+        let rows = client
+            .query(&explain_sql, &[])
+            .await
+            .map_err(|e| sanitize_db_error(&e.to_string()))?;
+        let row = rows.first().ok_or_else(|| "No plan data returned".to_string())?;
+        let json_val: serde_json::Value = row
+            .try_get(0)
+            .map_err(|e| format!("Could not read plan JSON: {e}"))?;
+        let plan = &json_val[0]["Plan"];
+        if plan.is_null() {
+            return Err("Unexpected plan structure".to_string());
+        }
+        let mut nodes = Vec::new();
+        flatten_plan(plan, 0, &mut nodes);
+        Ok(nodes)
+    })
+}
+
+fn flatten_plan(node: &serde_json::Value, depth: usize, out: &mut Vec<PlanNode>) {
+    let node_type    = node["Node Type"].as_str().unwrap_or("Unknown").to_owned();
+    let relation     = node["Relation Name"].as_str().map(|s| s.to_owned());
+    let actual_ms    = node["Actual Total Time"].as_f64().unwrap_or(0.0);
+    let actual_rows  = node["Actual Rows"].as_i64().unwrap_or(0);
+    let loops        = node["Loops"].as_i64().unwrap_or(1);
+    let total_ms     = actual_ms * loops as f64;
+
+    let children_ms: f64 = node["Plans"]
+        .as_array()
+        .map(|cs| {
+            cs.iter()
+                .map(|c| {
+                    c["Actual Total Time"].as_f64().unwrap_or(0.0)
+                        * c["Loops"].as_i64().unwrap_or(1) as f64
+                })
+                .sum()
+        })
+        .unwrap_or(0.0);
+
+    let exclusive_ms = (total_ms - children_ms).max(0.0);
+
+    out.push(PlanNode { node_type, relation, actual_total_ms: total_ms, actual_rows, loops, depth, exclusive_ms });
+
+    if let Some(children) = node["Plans"].as_array() {
+        for child in children {
+            flatten_plan(child, depth + 1, out);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Cell serialisation
 // ---------------------------------------------------------------------------
 fn cell_to_string(row: &tokio_postgres::Row, idx: usize) -> String {

@@ -9,7 +9,7 @@ use zeroize::Zeroize;
 
 use crate::highlighter::{SqlHighlighter, SqlSettings};
 
-use crate::db::{ConnConfig, QueryResult, PgHandle, fetch_schema_sync, query_sync};
+use crate::db::{ConnConfig, PlanNode, QueryResult, PgHandle, explain_plan_sync, fetch_schema_sync, query_sync};
 use crate::history::{HistoryEntry, HistoryStore};
 use crate::profiles::{ConnectionProfile, ProfileStore, load_password, save_password};
 use crate::recent::{RecentConnection, RecentStore};
@@ -158,6 +158,8 @@ struct QueryTab {
     sorted_rows:  Option<Vec<Vec<String>>>,
     pivot_view:   bool,
     col_stats:    Option<ColStats>,
+    plan_result:  Option<Vec<PlanNode>>,
+    show_plan:    bool,
 }
 
 impl QueryTab {
@@ -172,6 +174,8 @@ impl QueryTab {
             sorted_rows:  None,
             pivot_view:   false,
             col_stats:    None,
+            plan_result:  None,
+            show_plan:    false,
         }
     }
 
@@ -413,6 +417,8 @@ pub enum Message {
     ToggleAutoJob(usize, bool),
     FireAutoJobNow(usize),
     Tick,
+    ExplainPlanResult(Result<Vec<PlanNode>, String>),
+    ShowPlanView(bool),
 }
 
 // ---------------------------------------------------------------------------
@@ -661,6 +667,20 @@ impl App {
         )
     }
 
+    fn fire_explain_plan(&mut self, sql: String) -> Task<Message> {
+        if sql.trim().is_empty() { return Task::none(); }
+        let Some(cfg) = self.active_config.clone() else { return Task::none(); };
+        self.query_running = true;
+        Task::perform(
+            async move {
+                tokio::task::spawn_blocking(move || {
+                    PgHandle::connect_sync(&cfg).and_then(|h| explain_plan_sync(&h, &sql))
+                }).await.unwrap_or_else(|e| Err(e.to_string()))
+            },
+            Message::ExplainPlanResult,
+        )
+    }
+
     fn launch_schema_fetch(&mut self) -> Task<Message> {
         let Some(cfg) = self.active_config.clone() else { return Task::none(); };
         self.schema_loading = true;
@@ -820,8 +840,8 @@ impl App {
             }
             Message::ExplainPressed => {
                 let raw = self.query_tabs[self.active_tab].sql();
-                let sql = format!("EXPLAIN ANALYZE {}", self.substitute_params(&raw));
-                self.fire_query_sync(sql)
+                let sql = self.substitute_params(&raw);
+                self.fire_explain_plan(sql)
             }
             Message::FormatPressed => {
                 let sql = self.query_tabs[self.active_tab].sql();
@@ -835,6 +855,7 @@ impl App {
                 let tab = &mut self.query_tabs[self.active_tab];
                 tab.content = text_editor::Content::new(); tab.last_result = None;
                 tab.result_error = None; tab.sorted_rows = None; tab.col_stats = None;
+                tab.plan_result = None; tab.show_plan = false;
                 self.param_names.clear(); self.param_values.clear(); self.batch_results.clear();
                 Task::none()
             }
@@ -922,6 +943,20 @@ impl App {
                         tab.result_error = Some(e); tab.last_result = None; tab.sorted_rows = None; tab.col_stats = None; tab.update_label();
                     }
                 }
+                Task::none()
+            }
+
+            Message::ExplainPlanResult(result) => {
+                self.query_running = false;
+                let tab = &mut self.query_tabs[self.active_tab];
+                match result {
+                    Ok(nodes) => { tab.plan_result = Some(nodes); tab.show_plan = true; tab.result_error = None; }
+                    Err(e)    => { tab.result_error = Some(e); tab.plan_result = None; tab.show_plan = false; }
+                }
+                Task::none()
+            }
+            Message::ShowPlanView(show) => {
+                self.query_tabs[self.active_tab].show_plan = show;
                 Task::none()
             }
 
@@ -2032,7 +2067,119 @@ impl App {
             );
         }
 
-        column![info, stats_banner, scrollable(Column::with_children(rows_col).spacing(0))].spacing(8).into()
+        let results_body = column![info, stats_banner, scrollable(Column::with_children(rows_col).spacing(0))].spacing(8);
+
+        // Sub-tab toggle: show [Results] [Plan] when a plan is available
+        if tab.plan_result.is_some() {
+            let tab_btn = |label: &'static str, active: bool| -> Element<Message> {
+                let bg = if active { panel } else { Color { a: 0.0, ..panel } };
+                container(text(label).size(12).color(if active { text_col } else { muted }))
+                    .padding([4, 12])
+                    .style(move |_| container::Style {
+                        background: Some(iced::Background::Color(bg)),
+                        border: iced::Border { color: border, width: 1.0, radius: 4.0.into() },
+                        ..Default::default()
+                    })
+                    .into()
+            };
+            let subtabs = row![
+                button(tab_btn("Results", !tab.show_plan))
+                    .padding(0)
+                    .style(|_, _| button::Style::default())
+                    .on_press(Message::ShowPlanView(false)),
+                button(tab_btn("Plan", tab.show_plan))
+                    .padding(0)
+                    .style(|_, _| button::Style::default())
+                    .on_press(Message::ShowPlanView(true)),
+            ].spacing(4);
+
+            if tab.show_plan {
+                column![subtabs, self.view_plan(p)].spacing(8).into()
+            } else {
+                column![subtabs, results_body].spacing(8).into()
+            }
+        } else {
+            results_body.into()
+        }
+    }
+
+    fn view_plan(&self, p: Pal) -> Element<'_, Message> {
+        let tab = &self.query_tabs[self.active_tab];
+        let Some(nodes) = &tab.plan_result else {
+            return text("No plan data").size(13).color(p.muted).into();
+        };
+
+        let total_ms = nodes.first().map(|n| n.actual_total_ms).unwrap_or(1.0).max(0.001);
+        const BAR_MAX: f32 = 260.0;
+
+        let mut rows_col: Vec<Element<Message>> = vec![
+            row![
+                container(text("Node").size(11).color(p.muted)).width(Length::Fill),
+                container(text("Excl. ms").size(11).color(p.muted)).width(80),
+                container(text("Rows").size(11).color(p.muted)).width(60),
+            ].spacing(8).into(),
+            horizontal_rule(1).into(),
+        ];
+
+        for node in nodes {
+            let pct = (node.exclusive_ms / total_ms * 100.0).min(100.0);
+            let bar_w = (pct as f32 / 100.0 * BAR_MAX).max(2.0);
+
+            // colour: red ≥50%, orange ≥25%, yellow ≥10%, teal <10%
+            let bar_color = if pct >= 50.0 {
+                Color { r: 0.87, g: 0.26, b: 0.21, a: 1.0 }
+            } else if pct >= 25.0 {
+                Color { r: 0.95, g: 0.55, b: 0.15, a: 1.0 }
+            } else if pct >= 10.0 {
+                Color { r: 0.93, g: 0.80, b: 0.20, a: 1.0 }
+            } else {
+                Color { r: 0.25, g: 0.70, b: 0.55, a: 1.0 }
+            };
+
+            let indent: f32 = node.depth as f32 * 14.0;
+            let label = match &node.relation {
+                Some(rel) => format!("{} on {rel}", node.node_type),
+                None      => node.node_type.clone(),
+            };
+
+            let bar = container(horizontal_space())
+                .width(bar_w)
+                .height(14)
+                .style(move |_| container::Style {
+                    background: Some(iced::Background::Color(bar_color)),
+                    border: iced::Border { radius: 2.0.into(), ..Default::default() },
+                    ..Default::default()
+                });
+
+            let row_el: Element<Message> = row![
+                horizontal_space().width(indent),
+                column![
+                    bar,
+                    text(label).size(11).color(p.text).font(iced::Font::MONOSPACE),
+                ].spacing(2).width(Length::Fill),
+                container(
+                    text(format!("{:.2}", node.exclusive_ms)).size(11).color(p.text).font(iced::Font::MONOSPACE)
+                ).width(80),
+                container(
+                    text(format!("{}", node.actual_rows)).size(11).color(p.muted).font(iced::Font::MONOSPACE)
+                ).width(60),
+            ].spacing(8).align_y(Alignment::Center).into();
+
+            rows_col.push(
+                container(row_el)
+                    .padding([4, 6])
+                    .width(Length::Fill)
+                    .into()
+            );
+        }
+
+        let total_label = text(format!("Total execution: {:.3} ms", total_ms))
+            .size(12).color(p.muted);
+
+        column![
+            scrollable(Column::with_children(rows_col).spacing(2)),
+            total_label,
+        ].spacing(8).into()
     }
 
     fn view_history(&self, p: Pal) -> Element<'_, Message> {
