@@ -392,6 +392,8 @@ pub enum Message {
     // schema
     LoadSchema,
     SchemaResult(Result<Vec<crate::db::SchemaTable>, String>),
+    SchemaSearchChanged(String),
+    ToggleSchemaTable(String),
     // pinboard
     PinLabelChanged(String),
     AddPin,
@@ -463,8 +465,10 @@ pub struct App {
     recent_store:  RecentStore,
     snippet_store:       SnippetStore,
     snippet_name_input:  String,
-    schema_cache:   SchemaCache,
-    schema_loading: bool,
+    schema_cache:     SchemaCache,
+    schema_loading:   bool,
+    schema_search:    String,
+    schema_expanded:  std::collections::HashSet<String>,
     saved_results:     Vec<SavedResult>,
     snapshot_name_buf: String,
     diff_left_idx:     Option<usize>,
@@ -511,6 +515,7 @@ impl Default for App {
             selected_profile_idx: None, recent_store,
             snippet_store, snippet_name_input: String::new(),
             schema_cache: SchemaCache::new(), schema_loading: false,
+            schema_search: String::new(), schema_expanded: std::collections::HashSet::new(),
             saved_results: Vec::new(), snapshot_name_buf: String::new(),
             diff_left_idx: None, diff_right_idx: None,
             pinboard: Vec::new(), pin_label_buf: String::new(),
@@ -1034,9 +1039,14 @@ impl App {
                 Task::none()
             }
 
-            Message::LoadSchema => self.launch_schema_fetch(),
+            Message::LoadSchema => { self.schema_expanded.clear(); self.launch_schema_fetch() }
             Message::SchemaResult(Ok(tables)) => { self.schema_cache.tables = tables; self.schema_cache.loaded = true; self.schema_cache.error = None; self.schema_loading = false; Task::none() }
             Message::SchemaResult(Err(e))     => { self.schema_cache.error = Some(e); self.schema_cache.loaded = false; self.schema_loading = false; Task::none() }
+            Message::SchemaSearchChanged(s) => { self.schema_search = s; Task::none() }
+            Message::ToggleSchemaTable(key) => {
+                if !self.schema_expanded.remove(&key) { self.schema_expanded.insert(key); }
+                Task::none()
+            }
 
             Message::PinLabelChanged(s) => { self.pin_label_buf = s; Task::none() }
             Message::AddPin => {
@@ -1675,12 +1685,21 @@ impl App {
     }
 
     fn view_schema(&self, p: Pal) -> Element<'_, Message> {
-        let muted = p.muted; let text_col = p.text; let border = p.border;
+        let muted = p.muted; let text_col = p.text; let border = p.border; let panel = p.panel;
         let pad = iced::Padding::from([PAGE_PAD, PAGE_PAD]);
+
+        let toolbar: Element<Message> = row![
+            action_btn(p, "Refresh", true).on_press(Message::LoadSchema),
+            text_input("Filter tables…", &self.schema_search)
+                .on_input(Message::SchemaSearchChanged)
+                .width(Length::Fill),
+        ].spacing(8).align_y(Alignment::Center).into();
+
         let mut col: Vec<Element<Message>> = vec![
             section_heading(p, "Schema Browser"),
-            action_btn(p, "Refresh Schema", true).on_press(Message::LoadSchema).into(),
+            toolbar,
         ];
+
         if !self.connected {
             col.push(err_lbl(p, "Not connected."));
             return scrollable(Column::with_children(col).spacing(12).padding(pad)).into();
@@ -1697,44 +1716,94 @@ impl App {
             return scrollable(Column::with_children(col).spacing(12).padding(pad)).into();
         }
 
-        let mut schemas: Vec<String> = Vec::new();
+        let needle = self.schema_search.to_lowercase();
+
+        let mut schemas: Vec<&str> = Vec::new();
         for t in &self.schema_cache.tables {
-            if !schemas.contains(&t.schema) { schemas.push(t.schema.clone()); }
+            if !schemas.contains(&t.schema.as_str()) { schemas.push(&t.schema); }
         }
+
         for schema_name in schemas {
-            // schema namespace label
-            col.push(text(schema_name.clone()).size(12).color(muted).into());
-            // tables as compact left-indented list items
-            for t in self.schema_cache.tables.iter().filter(|t| t.schema == schema_name) {
-                let kind_suffix = if t.kind == "VIEW" { "  view" } else { "" };
-                let col_rows: Vec<Element<Message>> = t.columns.iter().map(|c| {
-                    let nullable = if c.is_nullable { "" } else { "  NOT NULL" };
-                    container(
-                        text(format!("{}  ·  {}{}", c.name, c.data_type, nullable))
-                            .size(11).color(muted)
-                    )
-                    .padding(iced::Padding { top: 2.0, right: 0.0, bottom: 2.0, left: 16.0 })
-                    .into()
-                }).collect();
-                col.push(
-                    column![
-                        text(format!("{}{}", t.name, kind_suffix))
+            let tables: Vec<_> = self.schema_cache.tables.iter()
+                .filter(|t| t.schema == schema_name)
+                .filter(|t| needle.is_empty() || t.name.to_lowercase().contains(&needle))
+                .collect();
+
+            if tables.is_empty() { continue; }
+
+            col.push(
+                text(format!("{schema_name}  ({} tables)", tables.len()))
+                    .size(11).color(muted).into()
+            );
+
+            for t in tables {
+                let key = format!("{}.{}", t.schema, t.name);
+                let expanded = self.schema_expanded.contains(&key);
+                let arrow = if expanded { "▾" } else { "▸" };
+                let is_view = t.kind.contains("VIEW");
+                let kind_tag = if is_view { "  view" } else { "" };
+                let col_count = t.columns.len();
+
+                let header = button(
+                    row![
+                        text(arrow).size(11).color(muted),
+                        text(format!("{}{}", t.name, kind_tag))
                             .size(13).color(text_col),
-                        Column::with_children(col_rows).spacing(0),
-                        container(horizontal_space().height(1))
-                            .width(Length::Fill)
-                            .style(move |_| container::Style {
-                                background: Some(iced::Background::Color(Color { a: 0.10, ..border })),
-                                ..Default::default()
-                            }),
-                    ]
-                    .spacing(3)
-                    .padding(iced::Padding { top: 6.0, right: 0.0, bottom: 4.0, left: 0.0 })
-                    .into()
-                );
+                        horizontal_space(),
+                        text(format!("{col_count} col{}", if col_count == 1 { "" } else { "s" }))
+                            .size(11).color(muted),
+                    ].spacing(6).align_y(Alignment::Center)
+                )
+                .padding([4, 8])
+                .width(Length::Fill)
+                .style(move |_, status| button::Style {
+                    background: if matches!(status, button::Status::Hovered) {
+                        Some(iced::Background::Color(Color { a: 0.06, ..panel }))
+                    } else { None },
+                    border: iced::Border { radius: 4.0.into(), ..Default::default() },
+                    ..Default::default()
+                })
+                .on_press(Message::ToggleSchemaTable(key));
+
+                if expanded {
+                    let col_rows: Vec<Element<Message>> = t.columns.iter().map(|c| {
+                        let null_tag = if c.is_nullable { "" } else { " ·  NOT NULL" };
+                        row![
+                            horizontal_space().width(20),
+                            text(&c.name).size(12).color(text_col).font(iced::Font::MONOSPACE).width(Length::Fill),
+                            text(format!("{}{null_tag}", c.data_type)).size(11).color(muted),
+                        ].spacing(8).align_y(Alignment::Center).into()
+                    }).collect();
+
+                    col.push(column![
+                        header,
+                        container(
+                            Column::with_children(col_rows).spacing(2).padding(iced::Padding { top: 2.0, right: 8.0, bottom: 4.0, left: 8.0 })
+                        )
+                        .width(Length::Fill)
+                        .style(move |_| container::Style {
+                            border: iced::Border { color: Color { a: 0.15, ..border }, width: 0.0, radius: 0.0.into() },
+                            background: Some(iced::Background::Color(Color { a: 0.03, ..panel })),
+                            ..Default::default()
+                        }),
+                    ].spacing(0).into());
+                } else {
+                    col.push(header.into());
+                }
             }
+
+            col.push(
+                container(horizontal_space().height(1))
+                    .width(Length::Fill)
+                    .style(move |_| container::Style {
+                        background: Some(iced::Background::Color(Color { a: 0.08, ..border })),
+                        ..Default::default()
+                    })
+                    .into()
+            );
         }
-        scrollable(Column::with_children(col).spacing(8).padding(pad)).into()
+
+        scrollable(Column::with_children(col).spacing(4).padding(pad)).into()
     }
 
     fn view_query_editor(&self, p: Pal) -> Element<'_, Message> {
