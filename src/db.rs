@@ -8,12 +8,12 @@ use zeroize::Zeroize;
 // ---------------------------------------------------------------------------
 #[derive(Clone)]
 pub struct ConnConfig {
-    pub host:     String,
-    pub port:     u16,
-    pub dbname:   String,
-    pub user:     String,
+    pub host: String,
+    pub port: u16,
+    pub dbname: String,
+    pub user: String,
     pub password: String,
-    pub use_tls:  bool,
+    pub use_tls: bool,
 }
 
 impl ConnConfig {
@@ -63,13 +63,21 @@ pub fn sanitize_db_error(e: &str) -> String {
     let mut s = e.to_owned();
     loop {
         let lower = s.to_lowercase();
-        let Some(start) = lower.find("password=") else { break };
+        let Some(start) = lower.find("password=") else {
+            break;
+        };
         let after = start + 9; // skip "password="
-        // handle both quoted ('value') and unquoted (value ) forms
+                               // handle both quoted ('value') and unquoted (value ) forms
         let end = if s.get(after..after + 1) == Some("'") {
-            s[after + 1..].find('\'').map(|i| after + 1 + i + 1).unwrap_or(s.len())
+            s[after + 1..]
+                .find('\'')
+                .map(|i| after + 1 + i + 1)
+                .unwrap_or(s.len())
         } else {
-            s[after..].find(|c: char| c.is_whitespace()).map(|i| after + i).unwrap_or(s.len())
+            s[after..]
+                .find(|c: char| c.is_whitespace())
+                .map(|i| after + i)
+                .unwrap_or(s.len())
         };
         s.replace_range(start..end, "password=<redacted>");
     }
@@ -81,24 +89,24 @@ pub fn sanitize_db_error(e: &str) -> String {
 // ---------------------------------------------------------------------------
 #[derive(Debug, Clone)]
 pub struct QueryResult {
-    pub columns:     Vec<String>,
-    pub rows:        Vec<Vec<String>>,
-    pub row_count:   usize,
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+    pub row_count: usize,
     pub duration_ms: u128,
 }
 
 #[derive(Debug, Clone)]
 pub struct SchemaColumn {
-    pub name:        String,
-    pub data_type:   String,
+    pub name: String,
+    pub data_type: String,
     pub is_nullable: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct SchemaTable {
-    pub schema:  String,
-    pub name:    String,
-    pub kind:    String,
+    pub schema: String,
+    pub name: String,
+    pub kind: String,
     pub columns: Vec<SchemaColumn>,
 }
 
@@ -107,6 +115,7 @@ pub struct SchemaTable {
 // ---------------------------------------------------------------------------
 pub struct PgHandle {
     pub client: Client,
+    rt: tokio::runtime::Runtime,
 }
 
 impl PgHandle {
@@ -114,52 +123,54 @@ impl PgHandle {
         let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
         let conn_str = cfg.build_conn_string(); // zeroized on drop
 
-        let result = if cfg.use_tls {
-            let tls_connector = TlsConnector::new()
-                .map_err(|e| format!("TLS init error: {e}"))?;
+        let client = if cfg.use_tls {
+            let tls_connector = TlsConnector::new().map_err(|e| format!("TLS init error: {e}"))?;
             let connector = MakeTlsConnector::new(tls_connector);
             rt.block_on(async {
                 let (client, connection) = tokio_postgres::connect(&*conn_str, connector)
                     .await
                     .map_err(|e| sanitize_db_error(&e.to_string()))?;
                 tokio::spawn(connection);
-                Ok(Self { client })
-            })
+                Ok::<Client, String>(client)
+            })?
         } else {
             rt.block_on(async {
                 let (client, connection) = tokio_postgres::connect(&*conn_str, NoTls)
                     .await
                     .map_err(|e| sanitize_db_error(&e.to_string()))?;
                 tokio::spawn(connection);
-                Ok(Self { client })
-            })
+                Ok::<Client, String>(client)
+            })?
         };
         // conn_str is dropped (zeroized) here before we return
-        result
+        Ok(Self { client, rt })
     }
 
     pub fn begin_sync(&mut self) -> Result<(), String> {
-        let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
-        rt.block_on(async {
-            self.client.execute("BEGIN", &[]).await
+        self.rt.block_on(async {
+            self.client
+                .execute("BEGIN", &[])
+                .await
                 .map(|_| ())
                 .map_err(|e| sanitize_db_error(&e.to_string()))
         })
     }
 
     pub fn commit_sync(&mut self) -> Result<(), String> {
-        let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
-        rt.block_on(async {
-            self.client.execute("COMMIT", &[]).await
+        self.rt.block_on(async {
+            self.client
+                .execute("COMMIT", &[])
+                .await
                 .map(|_| ())
                 .map_err(|e| sanitize_db_error(&e.to_string()))
         })
     }
 
     pub fn rollback_sync(&mut self) -> Result<(), String> {
-        let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
-        rt.block_on(async {
-            self.client.execute("ROLLBACK", &[]).await
+        self.rt.block_on(async {
+            self.client
+                .execute("ROLLBACK", &[])
+                .await
                 .map(|_| ())
                 .map_err(|e| sanitize_db_error(&e.to_string()))
         })
@@ -169,16 +180,22 @@ impl PgHandle {
 // ---------------------------------------------------------------------------
 // Query execution
 // ---------------------------------------------------------------------------
-pub fn query_sync(client: &Client, sql: &str) -> Result<QueryResult, String> {
-    let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
-    rt.block_on(async {
+pub fn query_sync(handle: &PgHandle, sql: &str) -> Result<QueryResult, String> {
+    handle.rt.block_on(async {
+        let client = &handle.client;
         let start = std::time::Instant::now();
-        let rows  = client.query(sql, &[]).await
+        let rows = client
+            .query(sql, &[])
+            .await
             .map_err(|e| sanitize_db_error(&e.to_string()))?;
         let duration_ms = start.elapsed().as_millis();
 
         let columns: Vec<String> = if let Some(first) = rows.first() {
-            first.columns().iter().map(|c| c.name().to_owned()).collect()
+            first
+                .columns()
+                .iter()
+                .map(|c| c.name().to_owned())
+                .collect()
         } else {
             vec![]
         };
@@ -189,16 +206,21 @@ pub fn query_sync(client: &Client, sql: &str) -> Result<QueryResult, String> {
             .collect();
 
         let row_count = stringified.len();
-        Ok(QueryResult { columns, rows: stringified, row_count, duration_ms })
+        Ok(QueryResult {
+            columns,
+            rows: stringified,
+            row_count,
+            duration_ms,
+        })
     })
 }
 
 // ---------------------------------------------------------------------------
 // Schema fetch
 // ---------------------------------------------------------------------------
-pub fn fetch_schema_sync(client: &Client) -> Result<Vec<SchemaTable>, String> {
-    let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
-    rt.block_on(async {
+pub fn fetch_schema_sync(handle: &PgHandle) -> Result<Vec<SchemaTable>, String> {
+    handle.rt.block_on(async {
+        let client = &handle.client;
         let table_rows = client
             .query(
                 "SELECT table_schema, table_name, table_type \
@@ -213,9 +235,9 @@ pub fn fetch_schema_sync(client: &Client) -> Result<Vec<SchemaTable>, String> {
         let mut tables: Vec<SchemaTable> = table_rows
             .iter()
             .map(|r| SchemaTable {
-                schema:  r.get::<_, String>(0),
-                name:    r.get::<_, String>(1),
-                kind:    r.get::<_, String>(2),
+                schema: r.get::<_, String>(0),
+                name: r.get::<_, String>(1),
+                kind: r.get::<_, String>(2),
                 columns: vec![],
             })
             .collect();
@@ -232,16 +254,19 @@ pub fn fetch_schema_sync(client: &Client) -> Result<Vec<SchemaTable>, String> {
             .map_err(|e| sanitize_db_error(&e.to_string()))?;
 
         for r in &col_rows {
-            let tschema: String  = r.get(0);
-            let tname:   String  = r.get(1);
-            let cname:   String  = r.get(2);
-            let dtype:   String  = r.get(3);
+            let tschema: String = r.get(0);
+            let tname: String = r.get(1);
+            let cname: String = r.get(2);
+            let dtype: String = r.get(3);
             let nullable: String = r.get(4);
 
-            if let Some(t) = tables.iter_mut().find(|t| t.schema == tschema && t.name == tname) {
+            if let Some(t) = tables
+                .iter_mut()
+                .find(|t| t.schema == tschema && t.name == tname)
+            {
                 t.columns.push(SchemaColumn {
-                    name:        cname,
-                    data_type:   dtype,
+                    name: cname,
+                    data_type: dtype,
                     is_nullable: nullable == "YES",
                 });
             }
@@ -261,18 +286,32 @@ fn cell_to_string(row: &tokio_postgres::Row, idx: usize) -> String {
     macro_rules! try_get {
         ($T:ty) => {
             if let Ok(v) = row.try_get::<_, Option<$T>>(idx) {
-                return v.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_owned());
+                return v
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "NULL".to_owned());
             }
         };
     }
 
     match col_type {
-        &Type::BOOL   => { try_get!(bool); }
-        &Type::INT2   => { try_get!(i16);  }
-        &Type::INT4   => { try_get!(i32);  }
-        &Type::INT8   => { try_get!(i64);  }
-        &Type::FLOAT4 => { try_get!(f32);  }
-        &Type::FLOAT8 => { try_get!(f64);  }
+        &Type::BOOL => {
+            try_get!(bool);
+        }
+        &Type::INT2 => {
+            try_get!(i16);
+        }
+        &Type::INT4 => {
+            try_get!(i32);
+        }
+        &Type::INT8 => {
+            try_get!(i64);
+        }
+        &Type::FLOAT4 => {
+            try_get!(f32);
+        }
+        &Type::FLOAT8 => {
+            try_get!(f64);
+        }
         &Type::TEXT | &Type::VARCHAR | &Type::BPCHAR | &Type::NAME => {
             try_get!(String);
         }

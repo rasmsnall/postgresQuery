@@ -614,7 +614,7 @@ impl App {
         Task::perform(
             async move {
                 tokio::task::spawn_blocking(move || {
-                    PgHandle::connect_sync(&cfg).and_then(|h| query_sync(&h.client, &sql))
+                    PgHandle::connect_sync(&cfg).and_then(|h| query_sync(&h, &sql))
                 }).await.unwrap_or_else(|e| Err(e.to_string()))
             },
             Message::QueryResult,
@@ -652,7 +652,7 @@ impl App {
             async move {
                 tokio::task::spawn_blocking(move || -> Vec<(String, Result<QueryResult, String>)> {
                     stmts.into_iter().map(|stmt| {
-                        let res = PgHandle::connect_sync(&cfg).and_then(|h| query_sync(&h.client, &stmt));
+                        let res = PgHandle::connect_sync(&cfg).and_then(|h| query_sync(&h, &stmt));
                         (stmt, res)
                     }).collect()
                 }).await.unwrap_or_default()
@@ -668,7 +668,7 @@ impl App {
         Task::perform(
             async move {
                 tokio::task::spawn_blocking(move || {
-                    PgHandle::connect_sync(&cfg).and_then(|h| fetch_schema_sync(&h.client))
+                    PgHandle::connect_sync(&cfg).and_then(|h| fetch_schema_sync(&h))
                 }).await.unwrap_or_else(|e| Err(e.to_string()))
             },
             Message::SchemaResult,
