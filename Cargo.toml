@@ -19,3 +19,11 @@ rust_xlsxwriter  = "0.79"
 sqlformat        = "0.3"
 keyring    = "3.6.3"
 dirs-next  = "2"
+image      = { version = "0.25", default-features = false, features = ["png"] }
+
+[build-dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+ico   = "0.3"
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
