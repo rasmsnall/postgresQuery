@@ -34,8 +34,7 @@ struct Pal {
     error:      Color,
     success:    Color,
     warning:    Color,
-    // nav active fg / inactive fg
-    nav_active_fg:   Color,
+    // nav inactive fg
     nav_inactive_fg: Color,
     // tab row bg
     tab_bar_bg: Color,
@@ -43,48 +42,59 @@ struct Pal {
     status_bg:  Color,
     // row alternating
     row_alt:    Color,
+    // accent (interactive highlight)
+    accent:      Color,
+    accent_text: Color,
 }
 
 impl Pal {
     fn dark() -> Self {
+        let g = |v: f32| Color { r: v, g: v, b: v, a: 1.0 };
         Self {
-            sidebar:         Color { r: 0.071, g: 0.071, b: 0.071, a: 1.0 }, // #121212
-            action:          Color { r: 0.200, g: 0.200, b: 0.200, a: 1.0 }, // #333
-            active:          Color { r: 0.278, g: 0.278, b: 0.278, a: 1.0 }, // #474747
-            bg:              Color { r: 0.047, g: 0.047, b: 0.047, a: 1.0 }, // #0C0C0C
-            panel:           Color { r: 0.118, g: 0.118, b: 0.118, a: 1.0 }, // #1E1E1E
-            border:          Color { r: 0.220, g: 0.220, b: 0.220, a: 1.0 }, // #383838
-            text:            Color { r: 0.878, g: 0.878, b: 0.878, a: 1.0 }, // #E0E0E0
-            muted:           Color { r: 0.471, g: 0.471, b: 0.471, a: 1.0 }, // #787878
-            error:           Color { r: 0.906, g: 0.298, b: 0.235, a: 1.0 },
-            success:         Color { r: 0.298, g: 0.749, b: 0.404, a: 1.0 },
-            warning:         Color { r: 0.957, g: 0.643, b: 0.212, a: 1.0 },
-            nav_active_fg:   Color::WHITE,
-            nav_inactive_fg: Color { r: 0.65, g: 0.65, b: 0.65, a: 1.0 },
-            tab_bar_bg:      Color { r: 0.047, g: 0.047, b: 0.047, a: 1.0 },
-            status_bg:       Color { r: 0.031, g: 0.031, b: 0.031, a: 1.0 },
-            row_alt:         Color { r: 0.072, g: 0.072, b: 0.072, a: 1.0 },
+            bg:              g(0.039), // #0A0A0A
+            sidebar:         g(0.067), // #111111
+            panel:           g(0.098), // #191919
+            border:          g(0.173), // #2C2C2C
+            action:          g(0.122), // #1F1F1F
+            active:          g(0.165), // #2A2A2A
+            text:            g(0.922), // #EBEBEB
+            muted:           g(0.400), // #666666
+            nav_inactive_fg: g(0.333), // #555555
+            tab_bar_bg:      g(0.027), // #070707
+            status_bg:       g(0.039), // #0A0A0A
+            row_alt:         g(0.071), // #121212
+            // accent: near-white for active/selected states (inverted contrast)
+            accent:          g(0.878), // #E0E0E0
+            accent_text:     g(0.039), // dark text on light accent
+            // functional — very desaturated, never overpowering
+            error:   Color { r: 0.741, g: 0.435, b: 0.435, a: 1.0 }, // muted rose
+            success: Color { r: 0.435, g: 0.647, b: 0.435, a: 1.0 }, // muted sage
+            warning: Color { r: 0.663, g: 0.580, b: 0.376, a: 1.0 }, // muted sand
         }
     }
 
     fn light() -> Self {
+        let g = |v: f32| Color { r: v, g: v, b: v, a: 1.0 };
         Self {
-            sidebar:         Color { r: 0.941, g: 0.941, b: 0.945, a: 1.0 }, // #F0F0F1
-            action:          Color { r: 0.863, g: 0.863, b: 0.867, a: 1.0 }, // #DCDCDD
-            active:          Color { r: 0.816, g: 0.820, b: 0.851, a: 1.0 }, // #D0D1D9
-            bg:              Color { r: 0.976, g: 0.976, b: 0.980, a: 1.0 }, // #F9F9FA
-            panel:           Color { r: 1.000, g: 1.000, b: 1.000, a: 1.0 }, // white cards
-            border:          Color { r: 0.820, g: 0.820, b: 0.827, a: 1.0 }, // #D1D1D3
-            text:            Color { r: 0.098, g: 0.098, b: 0.102, a: 1.0 }, // #191919
-            muted:           Color { r: 0.431, g: 0.431, b: 0.447, a: 1.0 }, // #6E6E72
-            error:           Color { r: 0.820, g: 0.161, b: 0.122, a: 1.0 }, // slightly darker for contrast
-            success:         Color { r: 0.118, g: 0.565, b: 0.251, a: 1.0 },
-            warning:         Color { r: 0.647, g: 0.396, b: 0.000, a: 1.0 },
-            nav_active_fg:   Color { r: 0.098, g: 0.098, b: 0.102, a: 1.0 },
-            nav_inactive_fg: Color { r: 0.353, g: 0.353, b: 0.365, a: 1.0 },
-            tab_bar_bg:      Color { r: 0.918, g: 0.918, b: 0.922, a: 1.0 }, // #EAEAEB
-            status_bg:       Color { r: 0.898, g: 0.898, b: 0.902, a: 1.0 }, // #E5E5E6
-            row_alt:         Color { r: 0.961, g: 0.961, b: 0.965, a: 1.0 }, // #F5F5F6
+            bg:              g(0.976), // #F9F9F9
+            sidebar:         g(0.949), // #F2F2F2
+            panel:           g(1.000), // #FFFFFF
+            border:          g(0.878), // #E0E0E0
+            action:          g(0.937), // #EFEFEF
+            active:          g(0.894), // #E4E4E4
+            text:            g(0.086), // #161616
+            muted:           g(0.565), // #909090
+            nav_inactive_fg: g(0.541), // #8A8A8A
+            tab_bar_bg:      g(0.949), // #F2F2F2
+            status_bg:       g(0.949),
+            row_alt:         g(0.965), // #F6F6F6
+            // accent: near-black for active/selected states
+            accent:          g(0.102), // #1A1A1A
+            accent_text:     g(1.000), // white text on dark accent
+            // functional — desaturated for light bg
+            error:   Color { r: 0.565, g: 0.275, b: 0.275, a: 1.0 }, // muted rose
+            success: Color { r: 0.259, g: 0.439, b: 0.259, a: 1.0 }, // muted sage
+            warning: Color { r: 0.471, g: 0.400, b: 0.196, a: 1.0 }, // muted sand
         }
     }
 
@@ -394,6 +404,9 @@ pub enum Message {
     SchemaResult(Result<Vec<crate::db::SchemaTable>, String>),
     SchemaSearchChanged(String),
     ToggleSchemaTable(String),
+    // database switcher
+    DatabasesLoaded(Result<Vec<String>, String>),
+    SwitchDatabase(String),
     // pinboard
     PinLabelChanged(String),
     AddPin,
@@ -469,6 +482,8 @@ pub struct App {
     schema_loading:   bool,
     schema_search:    String,
     schema_expanded:  std::collections::HashSet<String>,
+    available_dbs:    Vec<String>,
+    dbs_loading:      bool,
     saved_results:     Vec<SavedResult>,
     snapshot_name_buf: String,
     diff_left_idx:     Option<usize>,
@@ -516,6 +531,7 @@ impl Default for App {
             snippet_store, snippet_name_input: String::new(),
             schema_cache: SchemaCache::new(), schema_loading: false,
             schema_search: String::new(), schema_expanded: std::collections::HashSet::new(),
+            available_dbs: Vec::new(), dbs_loading: false,
             saved_results: Vec::new(), snapshot_name_buf: String::new(),
             diff_left_idx: None, diff_right_idx: None,
             pinboard: Vec::new(), pin_label_buf: String::new(),
@@ -700,6 +716,21 @@ impl App {
         )
     }
 
+    fn launch_db_fetch(&mut self) -> Task<Message> {
+        let Some(cfg) = self.active_config.clone() else { return Task::none(); };
+        self.dbs_loading = true;
+        Task::perform(
+            async move {
+                tokio::task::spawn_blocking(move || {
+                    let h = PgHandle::connect_sync(&cfg)?;
+                    let result = query_sync(&h, "SELECT datname FROM pg_database WHERE datistemplate = false AND datallowconn = true ORDER BY datname")?;
+                    Ok(result.rows.into_iter().filter_map(|r| r.into_iter().next()).collect::<Vec<String>>())
+                }).await.unwrap_or_else(|e| Err(e.to_string()))
+            },
+            Message::DatabasesLoaded,
+        )
+    }
+
     pub fn theme(&self) -> Theme {
         if self.dark_theme { Theme::Dark } else { Theme::Light }
     }
@@ -763,7 +794,9 @@ impl App {
                 self.active_config = Some(Arc::new(cfg.clone()));
                 self.recent_store.push(RecentConnection { host: cfg.host.clone(), port, dbname: cfg.dbname.clone(), user: cfg.user.clone(), use_tls: cfg.use_tls });
                 let _ = self.recent_store.save();
-                self.launch_schema_fetch()
+                let schema_task = self.launch_schema_fetch();
+                let db_task = self.launch_db_fetch();
+                Task::batch([schema_task, db_task])
             }
             Message::ConnectionResult(Err(e)) => { self.conn_status = format!("Error: {e}"); self.connected = false; Task::none() }
 
@@ -771,6 +804,7 @@ impl App {
                 self.pg_handle = None; self.connected = false; self.in_transaction = false;
                 self.active_config = None; self.conn_password.zeroize();
                 self.conn_status = "Disconnected".into(); self.schema_cache.clear();
+                self.available_dbs.clear();
                 Task::none()
             }
 
@@ -1047,6 +1081,22 @@ impl App {
                 if !self.schema_expanded.remove(&key) { self.schema_expanded.insert(key); }
                 Task::none()
             }
+            Message::DatabasesLoaded(Ok(dbs)) => { self.available_dbs = dbs; self.dbs_loading = false; Task::none() }
+            Message::DatabasesLoaded(Err(_))  => { self.dbs_loading = false; Task::none() }
+            Message::SwitchDatabase(dbname) => {
+                if self.conn_dbname == dbname { return Task::none(); }
+                self.conn_dbname = dbname;
+                let port: u16 = self.conn_port.parse().unwrap_or(5432);
+                let cfg = Arc::new(ConnConfig {
+                    host: self.conn_host.clone(), port, dbname: self.conn_dbname.clone(),
+                    user: self.conn_user.clone(), password: self.conn_password.clone(), use_tls: self.conn_use_tls,
+                });
+                self.conn_status = format!("Switching to {}…", self.conn_dbname);
+                Task::perform(
+                    async move { tokio::task::spawn_blocking(move || PgHandle::connect_sync(&cfg).map(|_| ())).await.unwrap_or_else(|e| Err(e.to_string())) },
+                    Message::ConnectionResult,
+                )
+            }
 
             Message::PinLabelChanged(s) => { self.pin_label_buf = s; Task::none() }
             Message::AddPin => {
@@ -1112,7 +1162,7 @@ impl App {
 // ---------------------------------------------------------------------------
 const PAGE_PAD: f32    = 24.0;
 const BTN_PAD:  [u16; 2] = [7, 18];
-const RADIUS:   f32    = 6.0;
+const RADIUS:   f32    = 8.0;
 
 #[allow(dead_code)]
 fn card<'a>(p: Pal, content: impl Into<Element<'a, Message>>) -> iced::widget::Container<'a, Message> {
@@ -1128,33 +1178,20 @@ fn card<'a>(p: Pal, content: impl Into<Element<'a, Message>>) -> iced::widget::C
 }
 
 fn nav_btn<'a>(p: Pal, label: &'a str, is_active: bool) -> iced::widget::Button<'a, Message> {
-    let active_bg = p.active;
-    let active_fg = p.nav_active_fg;
+    let accent      = p.accent;
+    let active_fg   = p.accent_text;
     let inactive_fg = p.nav_inactive_fg;
-    let accent = p.text; // left-bar accent color when active
+    let text_col    = p.text;
     let fg = if is_active { active_fg } else { inactive_fg };
-    // left accent bar: a colored leading strip when active
-    let inner: Element<Message> = row![
-        // 3px accent strip
-        container(horizontal_space().width(3))
-            .height(Length::Fill)
-            .style(move |_| container::Style {
-                background: if is_active {
-                    Some(iced::Background::Color(Color { r: accent.r, g: accent.g, b: accent.b, a: 0.8 }))
-                } else {
-                    None
-                },
-                border: iced::Border { radius: 2.0.into(), ..Default::default() },
-                ..Default::default()
-            }),
-        container(text(label).size(13).color(fg))
-            .padding(iced::Padding { top: 0.0, right: 0.0, bottom: 0.0, left: 10.0 })
-            .height(Length::Fill)
-            .align_y(iced::alignment::Vertical::Center),
-    ]
+
+    let inner: Element<Message> = container(
+        text(label).size(13).color(fg)
+    )
+    .padding(iced::Padding { top: 0.0, right: 0.0, bottom: 0.0, left: 12.0 })
     .height(34)
-    .align_y(Alignment::Center)
+    .align_y(iced::alignment::Vertical::Center)
     .into();
+
     button(inner)
         .width(Length::Fill)
         .padding(iced::Padding { top: 2.0, right: 8.0, bottom: 2.0, left: 4.0 })
@@ -1162,9 +1199,9 @@ fn nav_btn<'a>(p: Pal, label: &'a str, is_active: bool) -> iced::widget::Button<
             let hovered = matches!(status, button::Status::Hovered);
             button::Style {
                 background: if is_active {
-                    Some(iced::Background::Color(active_bg))
+                    Some(iced::Background::Color(accent))
                 } else if hovered {
-                    Some(iced::Background::Color(Color { a: 0.12, ..active_bg }))
+                    Some(iced::Background::Color(Color { r: text_col.r, g: text_col.g, b: text_col.b, a: 0.07 }))
                 } else {
                     None
                 },
@@ -1188,16 +1225,17 @@ fn badge(label: &str, color: Color) -> Element<'static, Message> {
 
 fn section_heading<'a>(p: Pal, label: &'a str) -> Element<'a, Message> {
     let text_col = p.text;
-    let muted = p.muted;
-    column![
-        text(label).size(16).color(text_col),
-        container(horizontal_space().height(1))
-            .width(Length::Fill)
+    let bar_col  = Color { a: 0.35, ..text_col };
+    row![
+        container(horizontal_space().width(3))
+            .height(16)
             .style(move |_| container::Style {
-                background: Some(iced::Background::Color(Color { a: 0.25, ..muted })),
+                background: Some(iced::Background::Color(bar_col)),
+                border: iced::Border { radius: 2.0.into(), ..Default::default() },
                 ..Default::default()
             }),
-    ].spacing(6).into()
+        text(label).size(14).color(text_col),
+    ].spacing(8).align_y(Alignment::Center).into()
 }
 
 fn lbl(s: &str) -> Element<'_, Message> { text(s).size(13).into() }
@@ -1212,39 +1250,40 @@ fn err_lbl(p: Pal, s: impl ToString) -> Element<'static, Message> {
 }
 
 fn action_btn<'a>(p: Pal, label: &'a str, enabled: bool) -> iced::widget::Button<'a, Message> {
-    let action = p.action;
+    let action   = p.action;
     let text_col = p.text;
+    let border   = p.border;
     button(text(label).size(13))
         .padding(BTN_PAD)
         .style(move |_, status| {
-            let alpha = if enabled { 1.0 } else { 0.35 };
+            let alpha   = if enabled { 1.0_f32 } else { 0.38 };
             let hovered = matches!(status, button::Status::Hovered) && enabled;
             let bg = Color {
-                r: action.r + if hovered { 0.06 } else { 0.0 },
-                g: action.g + if hovered { 0.06 } else { 0.0 },
-                b: action.b + if hovered { 0.06 } else { 0.0 },
+                r: action.r + if hovered { 0.05 } else { 0.0 },
+                g: action.g + if hovered { 0.05 } else { 0.0 },
+                b: action.b + if hovered { 0.05 } else { 0.0 },
                 a: alpha,
             };
             button::Style {
                 background: Some(iced::Background::Color(bg)),
                 text_color: Color { a: alpha, ..text_col },
-                border: iced::Border { radius: RADIUS.into(), ..Default::default() },
+                border: iced::Border { color: Color { a: 0.5 * alpha, ..border }, width: 1.0, radius: RADIUS.into() },
                 ..Default::default()
             }
         })
 }
 
 fn ghost_btn<'a>(p: Pal, label: &'a str) -> iced::widget::Button<'a, Message> {
-    let muted = p.muted;
-    let border = p.border;
+    let muted    = p.muted;
+    let border   = p.border;
     let hover_bg = p.active;
     button(text(label).size(12).color(muted))
         .padding([5, 12])
         .style(move |_, status| {
             let hovered = matches!(status, button::Status::Hovered);
             button::Style {
-                background: if hovered { Some(iced::Background::Color(Color { a: 0.35, ..hover_bg })) } else { None },
-                border: iced::Border { color: border, width: 1.0, radius: RADIUS.into() },
+                background: if hovered { Some(iced::Background::Color(Color { a: 0.25, ..hover_bg })) } else { None },
+                border: iced::Border { color: Color { a: 0.6, ..border }, width: 1.0, radius: RADIUS.into() },
                 text_color: muted,
                 ..Default::default()
             }
@@ -1319,18 +1358,18 @@ impl App {
         let v = &self.current_view;
 
         let logo_text_color = p.text;
-        let logo_accent = p.success; // green dot next to logo
+        let logo_accent = p.accent;
         let logo = container(
             row![
-                text("PQL").size(18).color(logo_text_color),
-                container(horizontal_space().width(6)).height(6)
+                container(horizontal_space().width(4)).height(20)
                     .style(move |_| container::Style {
                         background: Some(iced::Background::Color(logo_accent)),
                         border: iced::Border { radius: 3.0.into(), ..Default::default() },
                         ..Default::default()
                     }),
-            ].spacing(4).align_y(Alignment::Center)
-        ).padding(iced::Padding { top: 20.0, right: 16.0, bottom: 12.0, left: 16.0 });
+                text("PQL").size(16).color(logo_text_color),
+            ].spacing(8).align_y(Alignment::Center)
+        ).padding(iced::Padding { top: 20.0, right: 16.0, bottom: 16.0, left: 16.0 });
 
         let nav_items: Vec<Element<Message>> = vec![
             nav_btn(p, "Connection", v == &View::Connection).on_press(Message::SetView(View::Connection)).into(),
@@ -1408,14 +1447,23 @@ impl App {
     }
 
     fn view_status_bar(&self, p: Pal) -> Element<'_, Message> {
-        let _muted = p.muted; let text_col = p.text;
+        let muted = p.muted; let text_col = p.text;
         let mut items: Vec<Element<Message>> = vec![];
-        if self.read_only      { items.push(badge("READ-ONLY", p.action)); }
+        if self.read_only      { items.push(badge("READ-ONLY", p.muted)); }
         if self.batch_mode     { items.push(badge("BATCH",     p.muted)); }
         if self.in_transaction { items.push(badge("TXN",       p.warning)); }
-        if self.query_running {
-            // show ● RUNNING with warning color to stand out
-            items.push(badge("● RUNNING", p.warning));
+        if self.query_running  { items.push(badge("● RUNNING", p.active)); }
+        if self.connected {
+            let db_label = format!("{}", self.conn_dbname);
+            items.push(
+                container(text(db_label).size(11).color(muted))
+                    .padding([2, 8])
+                    .style(move |_| container::Style {
+                        border: iced::Border { color: Color { a: 0.22, ..muted }, width: 1.0, radius: 4.0.into() },
+                        ..Default::default()
+                    })
+                    .into()
+            );
         }
         items.push(horizontal_space().into());
         if let Some(notice) = &self.notice {
@@ -1432,7 +1480,7 @@ impl App {
             .width(Length::Fill).height(28).padding([0, 14])
             .style(move |_| container::Style {
                 background: Some(iced::Background::Color(status_bg)),
-                border: iced::Border { color: border, width: 1.0, radius: 0.0.into() },
+                border: iced::Border { color: Color { a: 0.5, ..border }, width: 1.0, radius: 0.0.into() },
                 ..Default::default()
             })
             .into()
@@ -1458,13 +1506,12 @@ impl App {
             text_input(placeholder, val).on_input(msg).secure(true).width(Length::Fill).into()
         };
 
-        // ── connect button (hoisted so inference works outside column![]) ──
-        let connect_bg = if can_connect { p.text } else { Color { a: 0.15, ..p.text } };
-        let connect_fg = if can_connect { p.bg } else { Color { a: 0.35, ..p.text } };
+        // ── connect / disconnect row ───────────────────────────────────────
+        let connect_bg = if can_connect { p.accent } else { Color { a: 0.25, ..p.accent } };
+        let connect_fg = if can_connect { p.accent_text } else { Color { a: 0.40, ..p.accent_text } };
         let connect_label = if self.connected { "Reconnect" } else { "Connect" };
-        let connect_btn: Element<Message> = button(text(connect_label).size(14).color(connect_fg))
-            .width(Length::Fill)
-            .padding([12, 0])
+        let connect_btn = button(text(connect_label).size(13).color(connect_fg))
+            .padding([9, 20])
             .style(move |_, status: button::Status| {
                 let hovered = matches!(status, button::Status::Hovered) && can_connect;
                 let bump = if hovered { 0.07 } else { 0.0 };
@@ -1480,18 +1527,19 @@ impl App {
                     ..Default::default()
                 }
             })
-            .on_press_maybe(if can_connect { Some(Message::ConnectPressed) } else { None })
-            .into();
+            .on_press_maybe(if can_connect { Some(Message::ConnectPressed) } else { None });
 
-        let disconnect_btn: Element<Message> = if self.connected {
-            button(text("Disconnect").size(12).color(p.error))
-                .width(Length::Fill)
-                .padding([6, 0])
-                .style(|_, _: button::Status| button::Style { background: None, ..Default::default() })
-                .on_press(Message::DisconnectPressed)
-                .into()
+        let conn_row: Element<Message> = if self.connected {
+            row![
+                connect_btn,
+                horizontal_space(),
+                button(text("Disconnect").size(12).color(p.error))
+                    .padding([9, 0])
+                    .style(|_, _: button::Status| button::Style { background: None, ..Default::default() })
+                    .on_press(Message::DisconnectPressed),
+            ].align_y(Alignment::Center).into()
         } else {
-            horizontal_space().height(0).into()
+            connect_btn.into()
         };
 
         // ── connection form — centered card, max 440px ────────────────────
@@ -1519,7 +1567,18 @@ impl App {
                 ].spacing(12),
                 column![
                     text("Database").size(12).color(muted),
-                    inp("", &self.conn_dbname, Message::ConnDbnameChanged),
+                    {
+                        let db_widget: Element<Message> = if self.connected && !self.available_dbs.is_empty() {
+                            let dbs: Vec<String> = self.available_dbs.clone();
+                            let current = self.conn_dbname.clone();
+                            pick_list(dbs, Some(current), Message::SwitchDatabase)
+                                .width(Length::Fill)
+                                .into()
+                        } else {
+                            inp("", &self.conn_dbname, Message::ConnDbnameChanged).into()
+                        };
+                        db_widget
+                    },
                 ].spacing(5),
                 // username + password inline
                 row![
@@ -1536,8 +1595,7 @@ impl App {
                     checkbox("Use TLS", self.conn_use_tls).on_toggle(Message::ConnUseTlsToggled),
                     checkbox("Read-only", self.read_only).on_toggle(Message::ReadOnlyToggled),
                 ].spacing(20),
-                connect_btn,
-                disconnect_btn,
+                conn_row,
                 // status row
                 row![
                     container(horizontal_space().width(7)).height(7)
@@ -1908,7 +1966,7 @@ impl App {
                 .padding(TB)
                 .style(move |_, status| {
                     let hovered = matches!(status, button::Status::Hovered) && is_active;
-                    let alpha = if is_active { 1.0f32 } else { 0.35 };
+                    let alpha = if is_active { 1.0f32 } else { 0.28 };
                     button::Style {
                         background: Some(iced::Background::Color(Color {
                             r: action.r + if hovered { 0.06 } else { 0.0 },
@@ -1916,8 +1974,28 @@ impl App {
                             b: action.b + if hovered { 0.06 } else { 0.0 },
                             a: alpha,
                         })),
-                        border: iced::Border { color: border, width: 1.0, radius: 4.0.into() },
+                        border: iced::Border { color: Color { a: 0.5 * alpha, ..border }, width: 1.0, radius: 6.0.into() },
                         text_color: Color { a: alpha, ..text_col },
+                        ..Default::default()
+                    }
+                })
+        };
+
+        // small toggle button for binary states (Batch)
+        let mk_toggle_btn = |label: &str, active: bool| {
+            let bg = if active { Color { a: 0.14, ..text_col } } else { Color { a: 0.0, ..action } };
+            let fg = if active { text_col } else { Color { a: 0.38, ..text_col } };
+            let bd = if active { Color { a: 0.45, ..text_col } } else { Color { a: 0.25, ..border } };
+            button(text(label.to_owned()).size(11).color(fg))
+                .padding([4, 10])
+                .style(move |_, status| {
+                    let hovered = matches!(status, button::Status::Hovered);
+                    button::Style {
+                        background: Some(iced::Background::Color(Color {
+                            a: bg.a + if hovered { 0.06 } else { 0.0 }, ..bg
+                        })),
+                        border: iced::Border { color: bd, width: 1.0, radius: 6.0.into() },
+                        text_color: fg,
                         ..Default::default()
                     }
                 })
@@ -1926,6 +2004,13 @@ impl App {
         let execute_label = if self.query_running { "Running…" } else { "Execute" };
         let pivot_label   = if active.pivot_view { "Normal" } else { "Pivot" };
         let has_sql       = !active.sql().trim().is_empty();
+        let divider = || container(horizontal_space().width(1))
+            .height(18)
+            .style(move |_| container::Style {
+                background: Some(iced::Background::Color(Color { a: 0.35, ..border })),
+                ..Default::default()
+            });
+
         let toolbar = container(
             row![
                 mk_tb_btn(execute_label.to_owned(), can_run && not_run)
@@ -1937,40 +2022,37 @@ impl App {
                 mk_tb_btn("Cancel".to_owned(), self.query_running)
                     .on_press_maybe(if self.query_running { Some(Message::CancelPressed) } else { None }),
                 mk_tb_btn("Clear".to_owned(), true).on_press(Message::ClearPressed),
-                container(horizontal_rule(1)).height(20).width(1)
-                    .style(move |_| container::Style {
-                        background: Some(iced::Background::Color(border)),
-                        ..Default::default()
-                    }),
+                divider(),
                 mk_tb_btn("CSV".to_owned(),  has_res).on_press_maybe(if has_res { Some(Message::ExportCsv)  } else { None }),
                 mk_tb_btn("JSON".to_owned(), has_res).on_press_maybe(if has_res { Some(Message::ExportJson) } else { None }),
                 mk_tb_btn("XLSX".to_owned(), has_res).on_press_maybe(if has_res { Some(Message::ExportXlsx) } else { None }),
-                container(horizontal_rule(1)).height(20).width(1)
-                    .style(move |_| container::Style {
-                        background: Some(iced::Background::Color(border)),
-                        ..Default::default()
-                    }),
+                divider(),
                 mk_tb_btn(pivot_label.to_owned(), has_res)
                     .on_press_maybe(if has_res { Some(Message::PivotToggled) } else { None }),
-                text_input("Snapshot…", &self.snapshot_name_buf).on_input(Message::SnapshotNameChanged).width(120),
+                text_input("Snapshot…", &self.snapshot_name_buf).on_input(Message::SnapshotNameChanged).width(110),
                 mk_tb_btn("Snapshot".to_owned(), has_res).on_press_maybe(if has_res { Some(Message::SnapshotPressed) } else { None }),
-            ].spacing(5).align_y(Alignment::Center)
+                horizontal_space(),
+                mk_toggle_btn("Batch", self.batch_mode)
+                    .on_press(Message::BatchModeToggled(!self.batch_mode)),
+            ].spacing(4).align_y(Alignment::Center)
         )
-        .padding([8, 12])
+        .padding([7, 10])
         .style(move |_| container::Style {
             background: Some(iced::Background::Color(panel)),
             ..Default::default()
         });
 
         let tx_row = container(row![
-            text("Tx:").size(11).color(muted),
-            ghost_btn(p, "BEGIN").on_press_maybe(if can_tx_begin { Some(Message::BeginTransaction) } else { None }),
-            ghost_btn(p, "COMMIT").on_press_maybe(if can_tx_end { Some(Message::CommitTransaction) } else { None }),
-            ghost_btn(p, "ROLLBACK").on_press_maybe(if can_tx_end { Some(Message::RollbackTransaction) } else { None }),
-            horizontal_space().width(16),
-            checkbox("Batch mode", self.batch_mode).on_toggle(Message::BatchModeToggled),
+            text("Transaction").size(10).color(Color { a: 0.5, ..muted }),
+            ghost_btn(p, "Begin").on_press_maybe(if can_tx_begin { Some(Message::BeginTransaction) } else { None }),
+            ghost_btn(p, "Commit").on_press_maybe(if can_tx_end { Some(Message::CommitTransaction) } else { None }),
+            ghost_btn(p, "Rollback").on_press_maybe(if can_tx_end { Some(Message::RollbackTransaction) } else { None }),
+            if !self.tx_error.is_empty() {
+                let e: Element<Message> = text(&self.tx_error).size(11).color(p.error).into();
+                e
+            } else { horizontal_space().width(0).into() },
         ].spacing(6).align_y(Alignment::Center))
-        .padding([5, 12]);
+        .padding([4, 10]);
 
         let editor_pane = container(
             column![
